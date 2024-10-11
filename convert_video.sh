@@ -11,10 +11,28 @@ yt-dlp -f "bestvideo+bestaudio" -o "input.%(ext)s" "$video_url"
 input_file=$(ls input.* | head -n 1)
 
 # Prompt for output file name
-read -p "Enter the output file name (e.g., output_4k2): " output_file
+read -p "Enter the output file name (e.g., output_video): " output_file
 
 # Ensure the output file ends with .mp4
 output_file="${output_file%.mp4}.mp4"
+
+# Prompt for output resolution (4K or 1080p)
+echo "Select output resolution:"
+echo "1) 4K"
+echo "2) 1080p"
+read -p "Pick your resolution: " resolution_choice
+
+# Set resolution-specific variables
+if [ "$resolution_choice" == "1" ]; then
+    video_bitrate="18M"
+    scale="3840:2160"
+elif [ "$resolution_choice" == "2" ]; then
+    video_bitrate="14M"
+    scale="1920:1080"
+else
+    echo "Invalid choice. Exiting."
+    exit 1
+fi
 
 # Prompt for seconds to trim from the beginning
 read -p "Enter seconds to trim from the beginning (default is 0): " trim_start_input
@@ -32,8 +50,9 @@ end_time=$(echo "$total_seconds - $trim_end" | bc)
 # Run the ffmpeg command
 ffmpeg -i "$input_file" \
   -ss "$trim_start" -to "$end_time" \
+  -vf "scale=$scale" \
   -c:v h264_videotoolbox -allow_sw 1 \
-  -b:v 18M \
+  -b:v "$video_bitrate" \
   -r 30 \
   -c:a aac -b:a 128k \
   -f mp4 \
